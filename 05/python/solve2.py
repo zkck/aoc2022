@@ -7,6 +7,7 @@ from typing import Iterator, Iterable
 
 INSTR_REGEX = re.compile(r"move (\d+) from (\d+) to (\d+)")
 
+
 def collect_head(lines: Iterator[str]):
     collected = []
     for line in lines:
@@ -14,6 +15,7 @@ def collect_head(lines: Iterator[str]):
             break
         collected.append(line)
     return collected[:-1]  # Remove number line
+
 
 def parse(lines: Iterable[str]):
     stacks = defaultdict(deque)
@@ -23,9 +25,10 @@ def parse(lines: Iterable[str]):
                 stacks[i].appendleft(c)
     return stacks
 
+
 def solve(lines: Iterator[str]):
     stacks = parse(collect_head(lines))
-    #pprint(stacks)
+    # pprint(stacks)
     for line in lines:
         m = INSTR_REGEX.fullmatch(line)
         if not m:
@@ -36,11 +39,13 @@ def solve(lines: Iterator[str]):
             collected.append(stacks[from_stack - 1].pop())
         for c in collected[::-1]:
             stacks[to_stack - 1].append(c)
-    #pprint(stacks)
-    return ''.join(stacks[i][-1] for i in range(len(stacks)))
+    # pprint(stacks)
+    return "".join(stacks[i][-1] for i in range(len(stacks)))
+
 
 def main():
-    print(solve(map(lambda x: str.rstrip(x, '\n'), sys.stdin)))
+    print(solve(map(lambda x: str.rstrip(x, "\n"), sys.stdin)))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
