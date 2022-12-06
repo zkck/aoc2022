@@ -31,19 +31,12 @@ class CharCounter:
 
 def solve(line, count):
     i = count - 1
-
     seen = CharCounter(line[:i])
     while i < len(line):
-        print(seen)
-        # Add current
         seen.inc(line[i])
-        # Remove
         if seen.num_nonzero == count:
             return i + 1
-
-        back = i - count + 1
-        seen.dec(line[back])
-
+        seen.dec(line[i - count + 1])
         i += 1
 
 
