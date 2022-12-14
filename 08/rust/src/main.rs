@@ -26,29 +26,42 @@ impl Matrix for IndicesMatrix {
     }
 }
 
-struct RotatedMatrix<T> {
-    base_matrix: Box<T>,
+struct NRotatedMatrix<T> {
+    base_matrix: T,
+    n: u32,
 }
 
-impl<T> Matrix for RotatedMatrix<T>
+impl<T> Matrix for NRotatedMatrix<T>
 where
     T: Matrix,
 {
     fn height(&self) -> u32 {
-        self.base_matrix.width()
+        if self.n % 2 == 0 {
+            self.base_matrix.height()
+        } else {
+            self.base_matrix.width()
+        }
     }
 
     fn width(&self) -> u32 {
-        self.base_matrix.height()
+        if self.n % 2 == 0 {
+            self.base_matrix.width()
+        } else {
+            self.base_matrix.height()
+        }
     }
 
     fn value_at(&self, i: u32, j: u32) -> (u32, u32) {
         // delegate to base matrix
-        self.base_matrix.value_at(self.width() - 1 - j, i)
+        let (mut i, mut j) = (i, j);
+        for _ in 0..self.n {
+            (i, j) = (self.width() - 1 - j, i)
+        }
+        self.base_matrix.value_at(i, j)
     }
 }
 
-fn mark_visible_trees<T>(matrix: &T, lines: &Vec<Vec<char>>, trees: &mut Vec<Vec<bool>>)
+fn mark_visible_trees<T>(matrix: &T, lines: &Vec<Vec<char>>, visible_trees: &mut Vec<Vec<bool>>)
 where
     T: Matrix,
 {
@@ -59,7 +72,7 @@ where
             let tree_height = lines[i as usize][j as usize].to_digit(10).unwrap() as i32;
             if tree_height > max {
                 max = tree_height;
-                trees[i as usize][j as usize] = true;
+                visible_trees[i as usize][j as usize] = true;
             }
         }
     }
@@ -71,24 +84,18 @@ fn main() {
         .map(|l| l.unwrap().chars().collect())
         .collect();
     let (width, height) = (lines.len(), lines[0].len());
-    let matrix = IndicesMatrix {
-        width: width as u32,
-        height: height as u32,
+    let mut matrix = NRotatedMatrix {
+        base_matrix: IndicesMatrix {
+            width: width as u32,
+            height: height as u32,
+        },
+        n: 0,
     };
-    let mut trees = vec![vec![false; width as usize]; height as usize];
-    mark_visible_trees(&matrix, &lines, &mut trees);
-    let matrix = RotatedMatrix {
-        base_matrix: Box::new(matrix),
-    };
-    mark_visible_trees(&matrix, &lines, &mut trees);
-    let matrix = RotatedMatrix {
-        base_matrix: Box::new(matrix),
-    };
-    mark_visible_trees(&matrix, &lines, &mut trees);
-    let matrix = RotatedMatrix {
-        base_matrix: Box::new(matrix),
-    };
-    mark_visible_trees(&matrix, &lines, &mut trees);
-    let count: u32 = trees.iter().flatten().map(|&b| b as u32).sum();
+    let mut visible_trees = vec![vec![false; width as usize]; height as usize];
+    for _ in 0..4 {
+        mark_visible_trees(&matrix, &lines, &mut visible_trees);
+        matrix.n += 1
+    }
+    let count: u32 = visible_trees.iter().flatten().map(|&b| b as u32).sum();
     println!("{}", count);
 }
