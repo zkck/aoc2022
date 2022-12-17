@@ -31,7 +31,6 @@ def parse(lines):
 
 class Problem:
     def __init__(self, valves) -> None:
-        print(len(valves))
         self.__valves = valves
         self.__distances = {}
         for valve in valves:
@@ -53,14 +52,13 @@ def bfs(problem, source: str) -> dict[str, int]:
     fringe: deque[tuple[str, int]] = deque([(source, 0)])
     visited: dict[str, int] = {}
     while fringe:
-        # Mark visited
         v, dist = fringe.popleft()
         visited[v] = dist
-        # Build new fringe
         for u in problem.valve(v).neighbors:
             if u not in visited:
                 fringe.append((u, dist + 1))
     return visited
+
 
 def remove_and_replace(workforce, worker, new_worker):
     workforce = list(workforce)
@@ -68,10 +66,11 @@ def remove_and_replace(workforce, worker, new_worker):
     workforce.append(new_worker)
     return tuple(sorted(workforce))
 
+
 @functools.cache
 def solve(
     problem: Problem,
-    workforce  = (("AA", 26), ("AA", 26)),
+    workforce=(("AA", 26), ("AA", 26)),
     opened_valves=frozenset(),
 ) -> int:
     best_score = 0
@@ -79,6 +78,8 @@ def solve(
     for worker in workforce:
         current_position, minutes_remaining = worker
         for neighbor, distance in problem.distances(current_position).items():
+            if not opened_valves:
+                print("Computing...")
             if distance < minutes_remaining and neighbor not in opened_valves:
                 minutes_remaining_after_move = minutes_remaining - distance - 1
                 best_score = max(
@@ -87,7 +88,11 @@ def solve(
                     * problem.valve(neighbor).flow_rate
                     + solve(
                         problem,
-                        remove_and_replace(workforce, worker, (neighbor, minutes_remaining_after_move)),
+                        remove_and_replace(
+                            workforce,
+                            worker,
+                            (neighbor, minutes_remaining_after_move),
+                        ),
                         opened_valves.union([neighbor]),
                     ),
                 )
