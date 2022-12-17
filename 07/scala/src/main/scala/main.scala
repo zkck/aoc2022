@@ -1,3 +1,4 @@
+import java.io.BufferedReader
 import scala.collection.mutable
 import scala.io.Source
 import scala.util.{Failure, Success, Using}
@@ -8,9 +9,10 @@ enum DirectoryItem:
   case D(hashMap: Directory)
   case F(size: Int)
 
-def newDir(): DirectoryItem = {
-  DirectoryItem.D(mutable.HashMap[String, DirectoryItem]())
-}
+object DirectoryItem:
+  def emptyDir(): DirectoryItem = {
+    DirectoryItem.D(mutable.HashMap[String, DirectoryItem]())
+  }
 
 def computeSize(tree: Directory, sizes: mutable.ArrayBuffer[Int]): Int = {
   val itemSizes = for ((name, item) <- tree) yield {
@@ -23,46 +25,53 @@ def computeSize(tree: Directory, sizes: mutable.ArrayBuffer[Int]): Int = {
   directorySize
 }
 
+def parse(source: BufferedReader): Directory = {
+  val root = mutable.HashMap[String, DirectoryItem]()
+  val stack = mutable.Stack(root)
+  var line = source.readLine()
+  while (line != null) {
+    val cwd = stack.top
+    val parts = line.split(' ')
+    parts.length match
+      case 2 =>
+        // $ ls
+        while ({
+          line = source.readLine()
+          line != null && !line.startsWith("$")
+        }) {
+          val parts = line.split(' ')
+          val newItem = parts(0).toIntOption match
+            case Some(value) => DirectoryItem.F(value)
+            case None => DirectoryItem.emptyDir()
+          cwd.getOrElseUpdate(parts(1), newItem)
+        }
+      case 3 =>
+        // $ cd ARG
+        val arg = parts(2)
+        if (arg == "..")
+          stack.pop()
+          if (stack.isEmpty)
+            stack.push(root)
+        else if (arg == "/")
+          stack.clear()
+          stack.push(root)
+        else
+          cwd.get(arg) match
+            case Some(DirectoryItem.D(directory)) =>
+              stack.push(directory)
+            case Some(DirectoryItem.F(_)) =>
+              throw UnsupportedOperationException("Cannot cd into file.")
+            case None =>
+              throw UnsupportedOperationException("Item not yet seen.")
+        line = source.readLine()
+  }
+  root
+}
+
 @main
 def main(): Unit = {
-  val parseResult = Using(Source.fromFile("../input").bufferedReader()) { source =>
-    // Parse!
-    val root: Directory = mutable.HashMap[String, DirectoryItem]()
-    val stack = mutable.Stack(root)
-    var line: String = source.readLine()
-    while (line != null) {
-      val cwd: Directory = stack.top
-      val parts = line.split(' ')
-      parts.length match
-        case 2 =>
-          // $ ls
-          while ({
-            line = source.readLine()
-            line != null && !line.startsWith("$")
-          }) {
-            val parts = line.split(' ')
-            val newItem = parts(0).toIntOption match
-              case Some(value) => DirectoryItem.F(value)
-              case None => newDir()
-            cwd.getOrElseUpdate(parts(1), newItem)
-          }
-        case 3 =>
-          // $ cd ARG
-          val arg = parts(2)
-          if (arg == "..")
-            stack.pop()
-            if (stack.isEmpty)
-              stack.push(root)
-          else if (arg == "/")
-            stack.clear()
-            stack.push(root)
-          else
-            cwd.getOrElseUpdate(arg, newDir()) match
-              case DirectoryItem.D(hashMap) => stack.push(hashMap)
-              case DirectoryItem.F(size) => throw AssertionError("Cannot cd into file.")
-          line = source.readLine()
-    }
-    root
+  val parseResult = Using(Source.fromFile("../input").bufferedReader()) {
+    source => parse(source)
   }
   val tree = parseResult match
     case Failure(exception) => throw exception
