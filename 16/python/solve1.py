@@ -1,4 +1,5 @@
 import re
+import itertools
 import functools
 import sys
 import dataclasses
@@ -31,40 +32,80 @@ def parse(lines):
 class Problem:
     def __init__(self, valves) -> None:
         print(len(valves))
-        self.valves = valves
+        self._valves = valves
+        self._distances = {}
+        for valve in valves:
+            self._distances[valve] = self._run_bfs(valve)
+        self.indices = {}
+        for i, valve in enumerate(valves):
+            self.indices[valve] = i
 
-    @functools.cache
+    def valve(self, v):
+        return self._valves[v]
+
+    def _run_bfs(self, source):
+        fringe = [source]
+        dist = 0
+        visited = {}
+        while fringe:
+            # Mark visited
+            for v in fringe:
+                visited[v] = dist
+            # Build new fringe
+            new_fringe = set()
+            for u in itertools.chain.from_iterable(self.valve(v).neighbors for v in fringe):
+                if u not in visited:
+                    new_fringe.add(u)
+            # Replace
+            fringe = new_fringe
+            dist += 1
+        print(source, visited)
+        return visited
+
+    def solve_greedy(self):
+        minutes_remaining = 30
+        score = 0
+        # Move to open valve
+        open_valves = set()
+        current = 'AA'
+        while minutes_remaining > 0 and len(open_valves) != len(self._valves):
+            best_move = 0
+            best_neighbor = None
+            for neighbor, distance in self._distances[current].items():
+                if neighbor not in open_valves:
+                    move_score = (minutes_remaining - distance - 1) * self.valve(neighbor).flow_rate
+                    if move_score >= best_move:
+                        best_move = move_score
+                        best_neighbor = neighbor
+            open_valves.add(best_neighbor)
+            score += best_move
+            minutes_remaining -= self._distances[current][best_neighbor] + 1
+            current = best_neighbor
+        return score
+
+
     def solve(
-        self, current="AA", minutes_remaining=30, opened_valves=None
+        self, current="AA", minutes_remaining=30, opened_valves=0
     ) -> int:
-        if opened_valves is None:
-            opened_valves = frozenset()
-        # Check remaining time
-        if minutes_remaining == 0 or len(opened_valves) == len(self.valves):
-            return 0
-        minutes_remaining -= 1
+
         best_score = 0
-        # Either open valve
-        if current not in opened_valves:
-            best_score = max(
-                best_score,
-                minutes_remaining * self.valves[current].flow_rate
-                + self.solve(
-                    current, minutes_remaining, opened_valves.union([current])
-                ),
-            )
-        # Or move
-        for neighbor in self.valves[current].neighbors:
-            best_score = max(
-                best_score,
-                self.solve(neighbor, minutes_remaining, opened_valves),
-            )
+        # Move to open valve
+        for neighbor, distance in self._distances[current].items():
+            if distance < minutes_remaining and neighbor and not (opened_valves & (1 << self.indices[neighbor])) and self.valve(neighbor).flow_rate > 0:
+                minutes_remaining_after_move = minutes_remaining - distance - 1
+                best_score = max(
+                    best_score,
+                    minutes_remaining_after_move * self.valve(neighbor).flow_rate +
+                    self.solve(neighbor, minutes_remaining_after_move, opened_valves | (1 << self.indices[neighbor]))
+                )
 
         return best_score
 
 
 def main():
-    print("ans1", Problem(parse(sys.stdin)).solve())
+    problem = Problem(parse(sys.stdin))
+    print("ans1", problem.solve_greedy())
+    print("ans1", problem.solve())
 
 
 if __name__ == "__main__":
