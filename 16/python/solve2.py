@@ -102,7 +102,7 @@ def solve(
 
 def main():
     problem = Problem(parse(sys.stdin))
-    print("ans1", solve(problem))
+    print("ans2", solve(problem))
 
 
 if __name__ == "__main__":
