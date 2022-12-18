@@ -5,12 +5,12 @@ import kotlin.math.abs
 const val WIDTH = 40
 const val HEIGHT = 6
 
-fun main(args: Array<String>) {
-    solve1(args)
-    solve2(args)
+fun main() {
+    solve1()
+    solve2()
 }
 
-fun solve2(args: Array<String>) {
+fun solve2() {
     val path = Path("../input")
 
     var cycle = 0
@@ -23,7 +23,7 @@ fun solve2(args: Array<String>) {
         cycle += 1
     }
 
-    path.forEachLine {line ->
+    path.forEachLine { line ->
         val instruction = line.split(" ")
         if (instruction[0] == "noop") {
             incCycles()
@@ -44,7 +44,7 @@ fun solve2(args: Array<String>) {
     }
 }
 
-fun solve1(args: Array<String>) {
+fun solve1() {
     val path = Path("../input")
 
     var cycle = 0
@@ -58,7 +58,7 @@ fun solve1(args: Array<String>) {
             sum += cycle * x
         }
     }
-    path.forEachLine {line ->
+    path.forEachLine { line ->
         val instruction = line.split(" ")
         if (instruction[0] == "noop") {
             incCycles()
