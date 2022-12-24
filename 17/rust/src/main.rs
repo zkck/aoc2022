@@ -113,8 +113,7 @@ where
 }
 
 fn main() -> io::Result<()> {
-
-    let file = File::open("../test")?;
+    let file = File::open("../input")?;
     let reader = BufReader::new(file);
 
     for line in reader.lines() {
