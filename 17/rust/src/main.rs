@@ -1,4 +1,4 @@
-use std::{fmt::Display, io};
+use std::{fmt::Display, io::{self, BufReader, BufRead}, fs::File};
 
 fn rocks() -> Vec<Vec<Vec<bool>>> {
     vec![
@@ -82,20 +82,20 @@ fn drop<T>(rock: &Vec<Vec<bool>>, well: &mut Well, actions: &mut T)
 where
     T: Iterator<Item = char>,
 {
-    let (mut i, mut j) = (well.well.len() as i32 + 3 + 1, 2);
-    println!("  Starting pos {:?}", (i, j));
-    while !well.conflicts(rock, (i - 1, j)) {
-        println!("  Falls one unit");
-        i = i - 1;
+    let (mut i, mut j) = (well.well.len() as i32 + 3, 2);
+    loop {
         let dj = match actions.next() {
             Some('<') => -1,
             Some('>') => 1,
             _ => panic!("Unexpected character or EOL"),
         };
         if !well.conflicts(rock, (i, j + dj)) {
-            println!("  Pushed {}", if dj < 0 { "left" } else { "right" });
             j += dj;
         }
+        if well.conflicts(rock, (i - 1, j)) {
+            break;
+        }
+        i -= 1;
     }
     well.solidify(rock, (i as usize, j as usize));
 }
@@ -106,14 +106,20 @@ where
 {
     let rocks = rocks();
     let mut well = Well { well: vec![] };
-    for i in 0..2002 {
-        println!("Dropping rock {}", i);
+    for i in 0..2022 {
         drop(&rocks[i % rocks.len()], &mut well, actions);
     }
     well.well.len()
 }
 
-fn main() {
-    let line = String::from(io::stdin().lines().next().unwrap().unwrap());
-    println!("ans1 {}", solve(&mut line.chars().cycle()));
+fn main() -> io::Result<()> {
+
+    let file = File::open("../test")?;
+    let reader = BufReader::new(file);
+
+    for line in reader.lines() {
+        println!("ans1 {}", solve(&mut line?.chars().cycle()));
+        return Ok(());
+    }
+    panic!("File is empty")
 }
