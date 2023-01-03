@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::io;
 
 // #[derive(Debug)]
@@ -91,20 +92,43 @@ fn less_than(first: &Value, second: &Value) -> ComparisonResult {
     }
 }
 
-fn main() -> io::Result<()> {
-    let lines: Vec<String> = io::stdin().lines().map(|l| l.unwrap()).filter(|l| !l.is_empty()).collect();
-    let mut sum = 0;
-    for (i, slice) in lines.chunks(2).enumerate() {
-        if let [a, b] = slice {
-            let (a, _) = Value::from_chars(&mut a.chars());
-            let (b, _) = Value::from_chars(&mut b.chars());
-            println!("{:?}", a);
-            println!("{:?}", b);
-            if less_than(&a.unwrap(), &b.unwrap()).unwrap() {
-                sum += i + 1
-            }
-        }
-    }
-    println!("{}", sum);
-    Ok(())
+fn insert(vector: &mut Vec<Value>, a: Value) -> usize {
+    let index = vector
+        .iter()
+        .position(|b| less_than(&a, b).unwrap())
+        .unwrap();
+    vector.insert(index, a);
+    index
+}
+
+fn main() {
+    let mut lines: Vec<Value> = io::stdin()
+        .lines()
+        .map(|l| l.unwrap())
+        .filter(|l| !l.is_empty())
+        .map(|l| Value::from_chars(&mut l.chars()).0.unwrap())
+        .collect();
+
+    lines.sort_by(|a, b| {
+        less_than(a, b)
+            .map(|b| if b { Ordering::Less } else { Ordering::Greater })
+            .unwrap()
+    });
+
+    lines.iter().for_each(|l| println!("{:?}", l));
+
+    let a = insert(
+        &mut lines,
+        Value::List(vec![Value::List(vec![Value::Integer(2)])]),
+    );
+    let b = insert(
+        &mut lines,
+        Value::List(vec![Value::List(vec![Value::Integer(6)])]),
+    );
+
+    println!();
+
+    lines.iter().for_each(|l| println!("{:?}", l));
+
+    println!("{}", (a + 1) * (b + 1));
 }
