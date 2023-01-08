@@ -86,18 +86,17 @@ const MONKEY_REGEX: &str = r"Monkey (\d+):
     If false: throw to monkey (\d)
 ";
 
-fn run(monkeys: &HashMap<usize, Monkey>, items_by_monkey: &mut HashMap<usize, Vec<i32>>) {
-    let mut inspection_counts: HashMap<usize, usize> = HashMap::new();
+fn run(monkeys_by_id: &Vec<Monkey>, items_by_monkey: &mut HashMap<usize, Vec<i32>>) {
+    let mut inspection_counts: Vec<usize> = vec![0; items_by_monkey.len()];
 
     for _round in 0..NUM_ROUNDS {
-        for monkey_id in 0..8 {
-            let monkey = monkeys.get(&monkey_id).expect("monkey should be in map");
+        for (monkey_id, monkey) in monkeys_by_id.iter().enumerate() {
             let items = match items_by_monkey.remove(&monkey_id) {
                 Some(v) => v,
                 None => vec![],
             };
 
-            *inspection_counts.entry(monkey_id).or_default() += items.len();
+            inspection_counts[monkey_id] += items.len();
 
             for mut item_worry_level in items {
                 let mut context = HashMap::new();
@@ -115,26 +114,29 @@ fn run(monkeys: &HashMap<usize, Monkey>, items_by_monkey: &mut HashMap<usize, Ve
         println!("{:?}", items_by_monkey);
     }
 
-    let mut inspection_values: Vec<&usize> = inspection_counts.values().collect();
-    inspection_values.sort();
-    inspection_values.reverse();
+    inspection_counts.sort();
+    inspection_counts.reverse();
 
     println!("{:?}", inspection_counts);
-    println!("ans1 {:?}", inspection_values.iter().take(2).fold(1, |a, &b| {a * b}));
+    println!("ans1 {:?}", inspection_counts.iter().take(2).fold(1, |a, &b| {a * b}));
 }
 
 fn main() {
     let monkey_regex = regex::Regex::new(MONKEY_REGEX).unwrap();
 
     let input = fs::read_to_string("../input").unwrap();
-    let mut monkeys: HashMap<usize, Monkey> = HashMap::new();
+    let mut monkeys: Vec<Monkey> = vec![];
 
     let mut items_by_monkey: HashMap<usize, Vec<i32>> = HashMap::new();
 
     for capture in monkey_regex.captures_iter(&input) {
         let group = |idx| capture.get(idx).unwrap().as_str();
-        monkeys.insert(
-            group(1).parse().unwrap(),
+        let monkey_id: usize = group(1).parse().unwrap();
+        if monkey_id != monkeys.len() {
+            panic!("unexpected order")
+        }
+
+        monkeys.push(
             Monkey {
                 operation: Expression::from_string(group(3)),
                 test: DivisibilityTest {
