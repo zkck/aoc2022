@@ -87,6 +87,8 @@ const MONKEY_REGEX: &str = r"Monkey (\d+):
 ";
 
 fn run(monkeys: &HashMap<usize, Monkey>, items_by_monkey: &mut HashMap<usize, Vec<i32>>) {
+    let mut inspection_counts: HashMap<usize, usize> = HashMap::new();
+
     for _round in 0..NUM_ROUNDS {
         for monkey_id in 0..8 {
             let monkey = monkeys.get(&monkey_id).expect("monkey should be in map");
@@ -94,6 +96,8 @@ fn run(monkeys: &HashMap<usize, Monkey>, items_by_monkey: &mut HashMap<usize, Ve
                 Some(v) => v,
                 None => vec![],
             };
+
+            *inspection_counts.entry(monkey_id).or_default() += items.len();
 
             for mut item_worry_level in items {
                 let mut context = HashMap::new();
@@ -108,9 +112,15 @@ fn run(monkeys: &HashMap<usize, Monkey>, items_by_monkey: &mut HashMap<usize, Ve
             }
         }
 
-        println!("{:?}", monkeys);
         println!("{:?}", items_by_monkey);
     }
+
+    let mut inspection_values: Vec<&usize> = inspection_counts.values().collect();
+    inspection_values.sort();
+    inspection_values.reverse();
+
+    println!("{:?}", inspection_counts);
+    println!("ans1 {:?}", inspection_values.iter().take(2).fold(1, |a, &b| {a * b}));
 }
 
 fn main() {
