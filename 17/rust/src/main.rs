@@ -1,3 +1,5 @@
+use std::cmp;
+use std::collections;
 use std::fmt::Display;
 use std::fs::File;
 use std::io;
@@ -5,7 +7,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 
 const INPUT_FILEPATH: &str = "../input";
-const HEAD: usize = 10;
+const HEAD: usize = 25;
 const NUM_ROUNDS: usize = 1000000000000;
 
 enum Action {
@@ -49,9 +51,37 @@ fn rocks() -> Vec<Vec<Vec<bool>>> {
 
 struct Well {
     well: Vec<[bool; 7]>,
+    highest_westmost_solid: usize,
+}
+
+fn mul(a: &(i32, i32), c: i32) -> (i32, i32) {
+    (a.0 * c, a.1 * c)
+}
+
+fn add(a: &(i32, i32), b: &(i32, i32)) -> (i32, i32) {
+    (a.0 + b.0, a.1 + b.1)
+}
+
+fn sub(a: &(i32, i32), b: &(i32, i32)) -> (i32, i32) {
+    add(a, &mul(b, -1))
+}
+
+fn right(a: &(i32, i32)) -> (i32, i32) {
+    mul(&left(a), -1)
+}
+
+fn left(a: &(i32, i32)) -> (i32, i32) {
+    // (di, dj) = (0, 1) must become (-1, 0)
+    (-a.1, a.0)
 }
 
 impl Well {
+    fn new() -> Self {
+        Self {
+            well: vec![],
+            highest_westmost_solid: 0,
+        }
+    }
     fn conflicts(&self, rock: &Vec<Vec<bool>>, (i, j): (i32, i32)) -> bool {
         for (di, row) in rock.iter().enumerate() {
             for (dj, &is_solid) in row.iter().enumerate() {
@@ -83,8 +113,29 @@ impl Well {
             for (dj, &is_solid) in row.iter().enumerate() {
                 let j = j + dj;
                 self.well[i][j] |= is_solid;
+                if j == 0 && is_solid {
+                    self.highest_westmost_solid = cmp::max(self.highest_westmost_solid, i + 1);
+                }
             }
         }
+    }
+
+    fn shape(&self) -> Vec<(i32, i32)> {
+        let mut pos = (self.highest_westmost_solid as i32, 0);
+        let mut dir = (0, 1);
+        // basically
+        let mut path = vec![];
+        while pos.1 != 6 {
+            path.push(sub(&pos, &(self.well.len() as i32, 0)));
+            // start by looking left
+            dir = left(&dir);
+            while self.is_solid(add(&pos, &dir)) {
+                dir = right(&dir);
+            }
+            pos = add(&pos, &dir);
+        }
+        path.push(sub(&pos, &(self.well.len() as i32, 0)));
+        path
     }
 }
 
@@ -97,6 +148,9 @@ impl Display for Well {
                 row.map(|is_solid| if is_solid { "#" } else { "." })
                     .join("")
             )?;
+        }
+        if self.well.len() > HEAD {
+            writeln!(f, "...")?;
         }
         Ok(())
     }
@@ -129,8 +183,17 @@ where
     T: Iterator<Item = Action>,
 {
     let rocks = rocks();
-    let mut well = Well { well: vec![] };
+    let mut well = Well::new();
+    let mut lines = io::stdin().lines();
+    let mut seen_shapes = collections::HashSet::new();
     rocks.iter().cycle().take(NUM_ROUNDS).for_each(|rock| {
+        print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+        println!("{}", well);
+        println!("shape={:?}", well.shape());
+        if !seen_shapes.insert(well.shape()) {
+            println!("seen shape");
+            lines.next();
+        };
         drop(rock, &mut well, actions);
     });
     well.well.len()
