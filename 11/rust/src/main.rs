@@ -50,12 +50,14 @@ impl Expression {
         match self {
             Expression::Identifier(ident) => context[ident],
             Expression::Constant(i) => *i,
-            Expression::Addition(e1, e2) => e1.evaluate(context, modulo) + e2.evaluate(context, modulo),
+            Expression::Addition(e1, e2) => {
+                e1.evaluate(context, modulo) + e2.evaluate(context, modulo)
+            }
             Expression::Multiplication(e1, e2) => {
                 let a = e1.evaluate(context, modulo);
                 let b = e2.evaluate(context, modulo);
                 a * b % modulo
-            },
+            }
         }
     }
 }
@@ -90,7 +92,10 @@ struct Monkey {
 fn run(monkeys_by_id: &Vec<Monkey>, items_by_monkey: &mut HashMap<usize, Vec<u64>>) {
     let mut inspection_counts: Vec<usize> = vec![0; items_by_monkey.len()];
     // all values in the data are primes, so no need to do find lcm
-    let modulo = monkeys_by_id.iter().map(|m| m.test.divider).fold(1, |acc, x| acc * x);
+    let modulo = monkeys_by_id
+        .iter()
+        .map(|m| m.test.divider)
+        .fold(1, |acc, x| acc * x);
 
     for _round in 0..NUM_ROUNDS {
         for (monkey_id, monkey) in monkeys_by_id.iter().enumerate() {
@@ -117,7 +122,10 @@ fn run(monkeys_by_id: &Vec<Monkey>, items_by_monkey: &mut HashMap<usize, Vec<u64
     inspection_counts.sort();
     inspection_counts.reverse();
 
-    println!("ans {:?}", inspection_counts.iter().take(2).fold(1, |a, &b| {a * b}));
+    println!(
+        "ans {:?}",
+        inspection_counts.iter().take(2).fold(1, |a, &b| { a * b })
+    );
 }
 
 fn main() {
@@ -135,16 +143,14 @@ fn main() {
             panic!("unexpected order")
         }
 
-        monkeys.push(
-            Monkey {
-                operation: Expression::from_string(group(3)),
-                test: DivisibilityTest {
-                    divider: group(4).parse().unwrap(),
-                    monkey_id_true: group(5).parse().unwrap(),
-                    monkey_id_false: group(6).parse().unwrap(),
-                },
+        monkeys.push(Monkey {
+            operation: Expression::from_string(group(3)),
+            test: DivisibilityTest {
+                divider: group(4).parse().unwrap(),
+                monkey_id_true: group(5).parse().unwrap(),
+                monkey_id_false: group(6).parse().unwrap(),
             },
-        );
+        });
 
         items_by_monkey.insert(
             group(1).parse().unwrap(),
