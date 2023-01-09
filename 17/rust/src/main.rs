@@ -6,6 +6,7 @@ use std::io::BufReader;
 
 const INPUT_FILEPATH: &str = "../input";
 const HEAD: usize = 10;
+const NUM_ROUNDS: usize = 1000000000000;
 
 enum Action {
     Forward,
@@ -121,7 +122,6 @@ where
         i -= 1;
     }
     well.solidify(rock, (i as usize, j as usize));
-    println!("{}", well);
 }
 
 fn solve<T>(actions: &mut T) -> usize
@@ -130,10 +130,9 @@ where
 {
     let rocks = rocks();
     let mut well = Well { well: vec![] };
-    rocks.iter().cycle().take(2022).for_each(|rock| {
+    rocks.iter().cycle().take(NUM_ROUNDS).for_each(|rock| {
         drop(rock, &mut well, actions);
     });
-    println!("{}", well);
     well.well.len()
 }
 
